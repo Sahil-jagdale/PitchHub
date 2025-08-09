@@ -3,6 +3,7 @@ import connectDB from "@/lib/db/db";
 import { userLoginSchema } from "@/lib/validations/userLogin.schema";
 import userModel from "@/models/user.model";
 import { NextResponse } from "next/server";
+import { setAuthCookie } from "@/lib/auth/setAuthCookies";
 
 export async function POST(req: Request) {
   try {
@@ -30,18 +31,8 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
-    return NextResponse.json(
-      {
-        message: "Login successful",
-        user: {
-          id: existingUser._id,
-          username: existingUser.username,
-          email: existingUser.email,
-          role: existingUser.role,
-        },
-      },
-      { status: 200 }
-    );
+    const response = NextResponse.json({ message: "Login successful" });
+    return setAuthCookie(response, existingUser._id);
   } catch (error) {
     console.error("Login Error:", error);
     return NextResponse.json(

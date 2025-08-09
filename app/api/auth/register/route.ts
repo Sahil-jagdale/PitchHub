@@ -3,6 +3,7 @@ import { userSignupSchema } from "@/lib/validations/userSignup.schema";
 import userModel from "@/models/user.model";
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import { setAuthCookie } from "@/lib/auth/setAuthCookies";
 
 export async function POST(req: Request) {
   try {
@@ -38,12 +39,22 @@ export async function POST(req: Request) {
       password: hashedPassword,
       role,
     });
-
     await newUser.save();
-    return NextResponse.json(
-      { message: "User registered successfully" },
+
+    const userData = {
+      _id: newUser._id,
+      username: newUser.username,
+      email: newUser.email,
+      role: newUser.role,
+      createdAt: newUser.createdAt,
+    };
+
+    const response = NextResponse.json(
+      { message: "User registered successfully", user: userData },
       { status: 201 }
     );
+    setAuthCookie(response, newUser._id.toString());
+    return response;
   } catch (error) {
     console.error("Register Error:", error);
     return NextResponse.json(
