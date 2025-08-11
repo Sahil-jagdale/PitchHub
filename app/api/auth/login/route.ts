@@ -20,8 +20,16 @@ export async function POST(req: Request) {
 
     const { email, password } = parsed.data;
     const existingUser = await userModel.findOne({ email });
+
     if (!existingUser) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    if (!existingUser.isVerified) {
+      return NextResponse.json(
+        { message: "Please verify your email before logging in" },
+        { status: 403 }
+      );
     }
 
     const passwordMatch = await bcrypt.compare(password, existingUser.password);
@@ -31,6 +39,7 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
+
     const response = NextResponse.json({ message: "Login successful" });
     return setAuthCookie(response, existingUser._id);
   } catch (error) {

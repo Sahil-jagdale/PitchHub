@@ -5,6 +5,9 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: "startup" | "investor";
+  verifyCode: string;
+  verifyCodeExpiry: Date;
+  isVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -14,6 +17,7 @@ const userSchema = new mongoose.Schema<IUser>(
     username: {
       type: String,
       required: true,
+      trim: true,
       unique: true,
     },
     email: {
@@ -29,6 +33,18 @@ const userSchema = new mongoose.Schema<IUser>(
       type: String,
       enum: ["investor", "startup"],
       required: true,
+    },
+    verifyCode: {
+      type: String,
+      required: true,
+    },
+    verifyCodeExpiry: {
+      type: Date,
+      required: true,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }
