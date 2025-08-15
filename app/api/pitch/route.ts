@@ -4,10 +4,24 @@ import { NextResponse } from "next/server";
 import { pitchValidationSchema } from "@/lib/validations/pitch.schema";
 import pitchSchema from "@/models/pitchSchema";
 import userModel from "@/models/user.model";
+import { verifyAuth } from "@/lib/auth/authMiddleware";
 
 export async function POST(req: Request) {
   try {
     await connectDB();
+    const auth = verifyAuth(req as any);
+    if (auth.error) {
+      return NextResponse.json(
+        { success: false, message: auth.error },
+        { status: 401 }
+      );
+    }
+    if (auth.role !== "startup") {
+      return NextResponse.json(
+        { success: false, message: "Only startups can create pitches" },
+        { status: 403 }
+      );
+    }
     const body = await req.json();
     const parsed = pitchValidationSchema.safeParse(body);
     if (!parsed.success) {
@@ -21,17 +35,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const { title, description, founder, ...rest } = parsed.data;
-    if (!founder) {
-      return NextResponse.json(
-        { success: false, message: "Founder ID is required" },
-        { status: 400 }
-      );
-    }
+    const { title, description, ...rest } = parsed.data;
+    const founder = auth.userId;
+
     const newPitch = new pitchSchema({ title, description, founder, ...rest });
     await newPitch.save();
     return NextResponse.json(
-      { success: true, message: "Pitch created successfully" },
+      { success: true, message: "Pitch created successfully", data: newPitch },
       { status: 201 }
     );
   } catch (error) {
@@ -91,8 +101,16 @@ export async function PUT(
   try {
     await connectDB();
     const { id } = params;
-    const body = await req.json();
 
+    const auth = verifyAuth(req as any);
+    if (auth.error) {
+      return NextResponse.json(
+        { success: false, message: auth.error },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
     const parsed = pitchValidationSchema.partial().safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -112,7 +130,7 @@ export async function PUT(
       );
     }
 
-    if (body.founder !== pitch.founder.toString()) {
+    if (pitch.founder.toString() !== auth.userId) {
       return NextResponse.json(
         { success: false, message: "Not authorized" },
         { status: 403 }
@@ -141,7 +159,13 @@ export async function DELETE(
   try {
     await connectDB();
     const { id } = params;
-    const body = await req.json();
+    const auth = verifyAuth(req as any);
+    if (auth.error) {
+      return NextResponse.json(
+        { success: false, message: auth.error },
+        { status: 401 }
+      );
+    }
 
     const pitch = await pitchSchema.findById(id);
     if (!pitch) {
@@ -150,14 +174,12 @@ export async function DELETE(
         { status: 404 }
       );
     }
-
-    if (body.founder !== pitch.founder.toString()) {
+    if (pitch.founder.toString() !== auth.userId) {
       return NextResponse.json(
         { success: false, message: "Not authorized" },
         { status: 403 }
       );
     }
-
     await pitch.deleteOne();
     return NextResponse.json({
       success: true,

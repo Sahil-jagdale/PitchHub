@@ -40,8 +40,23 @@ export async function POST(req: Request) {
       );
     }
 
-    const response = NextResponse.json({ message: "Login successful" });
-    return setAuthCookie(response, existingUser._id);
+    const response = NextResponse.json({
+      message: "Login successful",
+      data: {
+        username: existingUser.username,
+        email: existingUser.email,
+        role: existingUser.role, // return role
+      },
+    });
+    try {
+      return setAuthCookie(response, existingUser._id, existingUser.role);
+    } catch (jwtError) {
+      console.error("JWT Error:", jwtError);
+      return NextResponse.json(
+        { message: "Failed to generate authentication token" },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("Login Error:", error);
     return NextResponse.json(

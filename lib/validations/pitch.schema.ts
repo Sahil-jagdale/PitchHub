@@ -11,7 +11,6 @@ export const pitchValidationSchema = z.object({
     (val) => Number(val),
     z.number().positive("Funding must be positive")
   ),
-  founder: z.string().min(1, "Founder ID is required"),
   equityOffered: z.number().min(0).max(100).optional(),
   valuation: z.number().positive().optional(),
   stage: z.enum(["idea", "MVP", "growth", "scaling"]).optional(),
